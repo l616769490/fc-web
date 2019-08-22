@@ -17,7 +17,8 @@ def responseFormat(responseEntitys, start_response, token = None):
     if not isinstance(responseEntitys, ResponseEntity):
         raise TypeError('只支持ResponseEntity格式的返回值')
     
-    return responseEntitys.build(start_response, token)
+    res = responseEntitys.build(start_response, token)
+    return [json.dumps(res).encode()]
 
 
 
@@ -48,7 +49,8 @@ def pathMatch(path, pattern = None):
                 if a.startswith('{') and a.endswith('}'):
                     key = a[1:-1]
                     if len(key) > 0:
-                        params[key] = _format(paths2[i])
+                        if key not in params:
+                            params[key] = _format(paths2[i])
     return params
 
 def _format(str):
@@ -72,9 +74,19 @@ def _format(str):
     except ValueError:
         return str
 
-if __name__ == "__main__":
+def createId(environ):
+    ''' 生成ID
+    '''
+    now = int(time.time())
+    start = int(time.mktime(time.strptime('2019-08-01 00:00:00', "%Y-%m-%d %H:%M:%S")))
+    temp = str(now - start)
+    if len(temp) < 15:
+        temp = ("0" * (15-len(temp))) + temp 
 
-    res = ResponseEntity('200')
-    responseFormat('res')
+    serviceName = str(int('0x' + environ['SERVER_NAME'], 16))
+    if len(serviceName) < 15:
+        serviceName = ("0" * (15 - len(serviceName))) + serviceName
+    if len(serviceName) > 15:
+        serviceName = serviceName[:15]
 
-
+    return temp+serviceName

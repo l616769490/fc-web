@@ -1,9 +1,12 @@
+import json
+from .right import encodeToken
 
 class ResponseEntity:
 
     def __init__(self, statusCode, res = None):
         self.statusCode = statusCode
         self.res = res
+        self.response_headers = [('Content-type', 'application/json')]
 
     @staticmethod
     def status(statusCode):
@@ -12,25 +15,25 @@ class ResponseEntity:
         return ResponseEntity(statusCode)
 
     @staticmethod
-    def ok(self, res):
+    def ok(res):
         ''' 200，成功
         '''
         return ResponseEntity('200', res)
 
     @staticmethod
-    def badRequest(self, res):
+    def badRequest(res):
         ''' 400，错误请求
         '''
         return ResponseEntity('400', res)
 
     @staticmethod
-    def unauthorized(self, res):
+    def unauthorized(res):
         ''' 401，权限不足
         '''
         return ResponseEntity('401', res)
 
     @staticmethod
-    def notFound(self, res):
+    def notFound(res):
         ''' 404，未找到
         '''
         return ResponseEntity('404', res)
@@ -50,16 +53,13 @@ class ResponseEntity:
         :param start_response 函数计算的token
         :param token 返回给用户的token
         '''
-        # 设置请求头
-        if not self.response_headers:
-            self.header()
         start_response(self.statusCode, self.response_headers)
         response = {}
 
         data = {}
         if isinstance(self.res, list):
             data = {'sum':len(self.res), 'list':self.res}
-        if isinstance(self.res, str):
+        elif isinstance(self.res, str):
             data = {'msg': self.res}
         else :
             data = self.res
@@ -67,10 +67,13 @@ class ResponseEntity:
         if self.statusCode == '200':
             response['message'] = 'success'
             if token:
-                response['token'] = token
+                response['token'] = encodeToken(token)
         else:
             response['message'] = 'fail'
         
         response['data'] = data
 
         return response
+
+    def __str__(self):
+        return json.dumps({'status':self.statusCode, 'res':self.res}) 
