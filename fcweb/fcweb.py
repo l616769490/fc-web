@@ -7,11 +7,12 @@ import logging
 
 _log = logging.getLogger()
 
-def fcIndex(login = False, auth = False, uToken = False):
+def fcIndex(login = False, auth = False, uToken = False, debug = False):
     ''' 
     :param login 是否需要登录，默认False
     :param auth 是否需要鉴权，默认False
-    :param uToken 是否更新token，默认True
+    :param uToken 是否更新token，默认False
+    :param debug 是否是调试模式，默认False
     '''
     def decorator(func):
         @functools.wraps(func)
@@ -34,7 +35,14 @@ def fcIndex(login = False, auth = False, uToken = False):
                 token = updateToken(oldToken)
             
             if not res: # 登录验证和权限验证都通过了，则执行对应的方法
-                res = _run(*args, **kw)
+                try:
+                    res = _run(*args, **kw)
+                except Exception as e:
+                    _log.error(e)
+                    if debug:
+                        return e
+                    else:
+                        res = ResponseEntity.serverError('服务器发生错误，请查看系统日志')
             _log.info('客户端%s请求:%s接口。返回结果:%s' % (http_host, environ['fc.request_uri'], res))
             return responseFormat(res, start_response, token)
         return wrapper

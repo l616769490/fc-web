@@ -38,6 +38,12 @@ class ResponseEntity:
         '''
         return ResponseEntity('404', res)
     
+    @staticmethod
+    def serverError(res):
+        ''' 500, 服务器错误
+        '''
+        return ResponseEntity('500', res)
+    
     def header(self, response_headers = [('Content-type', 'application/json')]):
         ''' 自定义HTTP头
         '''
