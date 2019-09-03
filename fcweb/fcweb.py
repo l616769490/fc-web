@@ -17,34 +17,34 @@ def fcIndex(login = False, auth = False, uToken = False, debug = False):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kw):
-            environ = args[0]
-            start_response = args[1]
-            http_host = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
             res = None
-            token = None
-            if login:   # 是否需要验证登录
-                if not isLogin(environ):
-                    _log.warning('客户端%s请求:%s接口权限不足' % (http_host, environ['fc.request_uri']))
-                    res = ResponseEntity.unauthorized('用户未登录，或登录已过期')
-            if auth:    # 是否需要验证权限
-                if not authRight(environ):
-                    _log.warning('客户端%s请求:%s接口权限不足' % (http_host ,environ['fc.request_uri']))
-                    res = ResponseEntity.unauthorized('权限不足')
-            if uToken: # 是否需要更新token
+            newToken = None
+            try:
+                environ = args[0]
+                start_response = args[1]
+                http_host = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
                 oldToken = getTokenFromHeader(environ)
-                token = updateToken(oldToken)
-            
-            if not res: # 登录验证和权限验证都通过了，则执行对应的方法
-                try:
+                if login:   # 是否需要验证登录
+                    if not isLogin(oldToken):
+                        _log.warning('客户端%s请求:%s接口权限不足' % (http_host, environ['fc.request_uri']))
+                        res = ResponseEntity.unauthorized('用户未登录，或登录已过期')
+                if auth:    # 是否需要验证权限
+                    if not authRight(oldToken, environ['fc.request_uri']):
+                        _log.warning('客户端%s请求:%s接口权限不足' % (http_host ,environ['fc.request_uri']))
+                        res = ResponseEntity.unauthorized('权限不足')
+                if uToken: # 是否需要更新token
+                    newToken = updateToken(oldToken)
+                
+                if not res: # 登录验证和权限验证都通过了，则执行对应的方法
                     res = _run(*args, **kw)
-                except Exception as e:
-                    _log.error(e)
-                    if debug:
-                        return e
-                    else:
-                        res = ResponseEntity.serverError('服务器发生错误，请查看系统日志')
-            _log.info('客户端%s请求:%s接口。返回结果:%s' % (http_host, environ['fc.request_uri'], res))
-            return responseFormat(res, start_response, token)
+                _log.info('客户端%s请求:%s接口。返回结果:%s' % (http_host, environ['fc.request_uri'], res))
+            except Exception as e:
+                _log.error(e)
+                if debug:
+                    return e
+                else:
+                    res = ResponseEntity.serverError('服务器发生错误，请联系管理员查看系统日志!')
+            return responseFormat(res, start_response, newToken)
         return wrapper
     return decorator
 

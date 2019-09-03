@@ -9,21 +9,20 @@ import json
 import logging
 import fcutils
 import pymysql
+import redis
 
 _log = logging.getLogger()
 
 # 配置文件地址
 _CONF_HOST = 'https://1837732264572668.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/ly-config/getConfigByName/'
 
-def isLogin(environ):
+def isLogin(oldPayload):
     ''' 验证是否已登录，登录则更新token
     :return 错误返回 False
     :return 成功返回 True
     '''
-    oldPayload = getTokenFromHeader(environ)
     if oldPayload == None:
         return False
-    
     return True
 
 def getTokenFromHeader(environ):
@@ -64,17 +63,14 @@ def updateToken(payload):
         payload['exp'] = exp
         return payload
 
-def authRight(environ):
+def authRight(token, requestUri):
     ''' 权限验证，成功返回True，失败返回False
     '''
     db = getDB()
     cursor = db.cursor()
     # seller_user, sellerId, roles, keep
-    token = getTokenFromHeader(environ)
     if token == None or 'roles' not in token:
         return False
-    # 获取接口地址
-    requestUri = environ['fc.request_uri']
     fcInterfaceURL = requestUri.split('proxy')[1].replace('.LATEST', '')
     if '?' in fcInterfaceURL:
         index = fcInterfaceURL.rfind('?')
@@ -129,3 +125,11 @@ def encodeToken(data):
     token_value = fcutils.encode(data, priv_key)
     
     return token_value
+
+def getRedis():
+    ''' 获取redis连接
+    '''
+    conf = json.loads(fcutils.getDataForStr(_CONF_HOST, 'ly_common_redis.json').text)
+    redis_conf = json.loads(conf['data'])
+    r = redis.Redis(host=redis_conf['host'], port=redis_conf['port'], db=0, password=redis_conf['password'])
+    return r

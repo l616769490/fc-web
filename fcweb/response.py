@@ -3,10 +3,12 @@ from .right import encodeToken
 
 class ResponseEntity:
 
-    def __init__(self, statusCode, res = None):
+    def __init__(self, statusCode, res = None, token = None):
         self.statusCode = statusCode
         self.res = res
         self.response_headers = [('Content-type', 'application/json')]
+        self.token = token
+        self.num = -1
 
     @staticmethod
     def status(statusCode):
@@ -48,12 +50,26 @@ class ResponseEntity:
         ''' 自定义HTTP头
         '''
         self.response_headers = response_headers
+        return self
     
     def body(self, res):
         ''' 自定义HTTP内容
         '''
         self.res = res
+        return self
 
+    def setToken(self, token):
+        ''' 自定义token
+        '''
+        self.token = token
+        return self
+    
+    def setNum(self, num):
+        ''' 自定义num
+        '''
+        self.num = num
+        return self
+    
     def build(self, start_response, token = None):
         ''' 生成请求
         :param start_response 函数计算的token
@@ -64,7 +80,9 @@ class ResponseEntity:
 
         data = {}
         if isinstance(self.res, list):
-            data = {'sum':len(self.res), 'list':self.res}
+            if self.num != -1:
+                n = self.num
+            data = {'sum':len(self.res) if self.num == -1 else self.num, 'list':self.res}
         elif isinstance(self.res, str):
             data = {'msg': self.res}
         else :
@@ -72,7 +90,10 @@ class ResponseEntity:
 
         if self.statusCode == '200':
             response['message'] = 'success'
-            if token:
+            # 优先使用自定义Token
+            if self.token:
+                response['token'] = encodeToken(self.token)
+            elif token:
                 response['token'] = encodeToken(token)
         else:
             response['message'] = 'fail'
