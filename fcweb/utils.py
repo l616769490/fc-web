@@ -5,6 +5,7 @@
 #####################################################################
 import re
 import json
+import time
 from .response import ResponseEntity
 
 def responseFormat(responseEntitys, start_response, token = None):
@@ -53,26 +54,29 @@ def pathMatch(path, pattern = None):
                             params[key] = _format(paths2[i])
     return params
 
-def _format(str):
+def _format(s):
     ''' 把传入的字符串格式化成对应的格式：字符串；数字；json
     '''
-    if not str or len(str) == 0:
+    if not s or len(s) == 0:
         return ''
     
-    if str.startswith('{') and str.endswith('}') or str.startswith('[') and str.endswith(']'):
-        return json.loads(str)
+    if s.startswith('{') and s.endswith('}') or s.startswith('[') and s.endswith(']'):
+        return json.loads(s)
     
-    if str.isdigit():
-        return int(str)
+    if s.isdigit():
+        if s.startswith('0'):
+            return s
+        else:
+            return int(s)
     
-    if str.startswith('-') and str[1:].isdigit():
-        return int(str)
+    if s.startswith('-') and s[1:].isdigit():
+        return int(s)
     
     try:
-        f = float(str)
+        f = float(s)
         return f
     except ValueError:
-        return str
+        return s
 
 def createId(environ):
     ''' 生成ID

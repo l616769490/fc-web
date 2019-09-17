@@ -10,6 +10,7 @@ import logging
 import fcutils
 import pymysql
 import redis
+import base64
 
 _log = logging.getLogger()
 
@@ -34,6 +35,24 @@ def getTokenFromHeader(environ):
     
     http3RdSession = environ['HTTP_3RD_SESSION'].replace('\\n', '\n')
     return decode(http3RdSession)
+
+def getPayloadFromHeader(environ):
+    ''' 获取头部的token里的具体内容，本地解码，不验证是否可靠
+    '''
+    # 验证头信息
+    if 'HTTP_3RD_SESSION' not in environ:
+        return None
+    
+    http3RdSession = environ['HTTP_3RD_SESSION'].replace('\\n', '\n')
+    strPayload = {}
+    
+    ss = http3RdSession.split('.')[1]
+    if len(ss) % 4:
+        # not a multiple of 4, add padding:
+        ss += '=' * (4 - len(ss) % 4)
+    strPayload = str(base64.b64decode(ss, '-_'), "utf-8")
+   
+    return json.loads(strPayload)
 
 def getDB():
     # 获取数据库连接配置
