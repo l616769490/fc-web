@@ -19,9 +19,28 @@ def responseFormat(responseEntitys, start_response, token = None):
         raise TypeError('只支持ResponseEntity格式的返回值')
     
     res = responseEntitys.build(start_response, token)
-    return [json.dumps(res).encode()]
+    codeRes = dataToJson(res)
+    return [json.dumps(codeRes).encode()]
 
-
+def dataToJson(data):
+    ''' 把list和dict转换成json字符串,
+        json库无法转换的类型（Decimal和日期类型）会转化为字符串形式, 
+        传入其他类型的数据转化成string返回
+    '''
+    if isinstance(data, str):
+        if data.startswith('{') and data.endswith('}') or data.startswith('[') and data.endswith(']'):
+            return json.loads(data.replace("'", '"'))
+        return data
+    elif isinstance(data, list):
+        for item in data:
+            item = dataToJson(item)
+        return data
+    elif isinstance(data, dict):
+        for k, v in data.items():
+            data[k] = dataToJson(v)
+        return data
+    else:
+        return str(data)
 
 def pathMatch(path, pattern = None):
     ''' 解析路径

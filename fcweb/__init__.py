@@ -1,4 +1,4 @@
-__version__ = '0.4.1'
+__version__ = '0.4.5'
 
 from .fcweb import (
     fcIndex, get, post, put, delete
@@ -10,4 +10,4 @@ from .right import (
 
 from .response import ResponseEntity
 
-from .utils import responseFormat, pathMatch, createId
+from .utils import responseFormat, pathMatch, createId, dataToJson

@@ -103,4 +103,5 @@ class ResponseEntity:
         return response
 
     def __str__(self):
-        return json.dumps({'status':self.statusCode, 'res':self.res}) 
+    	from .utils import dataToJson
+        return json.dumps({'status':self.statusCode, 'res':dataToJson(self.res)}) 
