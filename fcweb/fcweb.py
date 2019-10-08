@@ -1,19 +1,22 @@
-import functools
-from .utils import pathMatch, responseFormat
 import json
+import logging
+import functools
+from .utils import pathMatch
+from fcutils import dataToJson
+from inspect import isfunction
 from .response import ResponseEntity
 from .right import isLogin, updateToken, getTokenFromHeader, authRight, getBodyAsJson, getBodyAsStr
-import logging
 
 _log = logging.getLogger()
 
 def fcIndex(debug = False):
     ''' 程序入口，拦截原函数计算入口，使用方法如下：
-    @fcIndex(debug = True)
-    def handler(environ, start_response):
-        pass
-    
-    :param debug 可选参数。是否是调试模式，默认False
+    --
+        @fcIndex(debug = True)
+        def handler(environ, start_response):
+            pass
+        
+        @param debug 可选参数,是否是调试模式，默认False
     '''
     def decorator(func):
         @functools.wraps(func)
@@ -29,7 +32,7 @@ def fcIndex(debug = False):
                     return e
                 else:
                     res = ResponseEntity.serverError('服务器发生错误，请联系管理员查看系统日志!')
-                    return responseFormat(res, start_response)
+                    return _responseFormat(res, start_response)
         return wrapper
     return decorator
 
@@ -49,22 +52,23 @@ def _run(*args, **kw):
         return fn(*args, **kw)
     else:
         res = ResponseEntity.badRequest('请求类型不支持！') 
-        return responseFormat(res, start_response)
+        return _responseFormat(res, start_response)
 
 def get(pattern = None, login = False, auth = False, uToken = False):
     ''' 使用方法
-    @get(pattern="/ly-test/test/{id}", login = True, auth = True, uToken = True)
-    def testFun(params, environ, start_response):
-        return ResponseEntity.ok('Hello World')
+    --
+        @get(pattern="/ly-test/test/{id}", login = True, auth = True, uToken = True)
+        def testFun(params, environ, start_response):
+            return ResponseEntity.ok('Hello World')
 
-    :param pattern  可选参数。路径模板，以/开头，需要带上服务名和函数名。
-                    如果模板中有类似【/{key}/】或者【/{key}】或者【/{key}?】这样的字段，会将路径中对应位置的路径解析为key的值
-                    示例：https://xxxx.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/demo/getUserById/1
-                        pattern = '/demo/getUserById/{id}'
-                        解析后会自动填充参数id=1
-    :param login 可选参数。是否需要登录，默认False
-    :param auth 可选参数。是否需要鉴权，默认False
-    :param uToken 可选参数。是否更新token，默认False
+        @param pattern  可选参数。路径模板，以/开头，需要带上服务名和函数名。
+                            如果模板中有类似【/{key}/】或者【/{key}】或者【/{key}?】这样的字段，会将路径中对应位置的路径解析为key的值
+                            示例：https://xxxx.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/demo/getUserById/1
+                                 pattern = '/demo/getUserById/{id}'
+                                 解析后会自动填充参数id=1
+        @param login 可选参数。是否需要登录，默认False
+        @param auth 可选参数。是否需要鉴权，默认False
+        @param uToken 可选参数。是否更新token，默认False
     '''
     def decorator(func):
         @functools.wraps(func)
@@ -76,18 +80,19 @@ def get(pattern = None, login = False, auth = False, uToken = False):
 
 def post(pattern = None, login = False, auth = False, uToken = False):
     ''' 使用方法
-    @get(pattern="/ly-test/test/{id}", login = True, auth = True, uToken = True)
-    def testFun(params, environ, start_response):
-        return ResponseEntity.ok('Hello World')
+    --
+        @post(pattern="/ly-test/test/{id}", login = True, auth = True, uToken = True)
+        def testFun(params, environ, start_response):
+            return ResponseEntity.ok('Hello World')
 
-    :param pattern  可选参数。路径模板，以/开头，需要带上服务名和函数名。
-                    如果模板中有类似【/{key}/】或者【/{key}】或者【/{key}?】这样的字段，会将路径中对应位置的路径解析为key的值
-                    示例：https://xxxx.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/demo/getUserById/1
-                        pattern = '/demo/getUserById/{id}'
-                        解析后会自动填充参数id=1
-    :param login 可选参数。是否需要登录，默认False
-    :param auth 可选参数。是否需要鉴权，默认False
-    :param uToken 可选参数。是否更新token，默认False
+        @param pattern  可选参数。路径模板，以/开头，需要带上服务名和函数名。
+                            如果模板中有类似【/{key}/】或者【/{key}】或者【/{key}?】这样的字段，会将路径中对应位置的路径解析为key的值
+                            示例：https://xxxx.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/demo/getUserById/1
+                                 pattern = '/demo/getUserById/{id}'
+                                 解析后会自动填充参数id=1
+        @param login 可选参数。是否需要登录，默认False
+        @param auth 可选参数。是否需要鉴权，默认False
+        @param uToken 可选参数。是否更新token，默认False
     '''
     def decorator(func):
         @functools.wraps(func)
@@ -99,18 +104,19 @@ def post(pattern = None, login = False, auth = False, uToken = False):
 
 def put(pattern = None, login = False, auth = False, uToken = False):
     ''' 使用方法
-    @get(pattern="/ly-test/test/{id}", login = True, auth = True, uToken = True,)
-    def testFun(params, environ, start_response):
-        return ResponseEntity.ok('Hello World')
+    --
+        @put(pattern="/ly-test/test/{id}", login = True, auth = True, uToken = True)
+        def testFun(params, environ, start_response):
+            return ResponseEntity.ok('Hello World')
 
-    :param pattern  可选参数。路径模板，以/开头，需要带上服务名和函数名。
-                    如果模板中有类似【/{key}/】或者【/{key}】或者【/{key}?】这样的字段，会将路径中对应位置的路径解析为key的值
-                    示例：https://xxxx.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/demo/getUserById/1
-                        pattern = '/demo/getUserById/{id}'
-                        解析后会自动填充参数id=1
-    :param login 可选参数。是否需要登录，默认False
-    :param auth 可选参数。是否需要鉴权，默认False
-    :param uToken 可选参数。是否更新token，默认False
+        @param pattern  可选参数。路径模板，以/开头，需要带上服务名和函数名。
+                            如果模板中有类似【/{key}/】或者【/{key}】或者【/{key}?】这样的字段，会将路径中对应位置的路径解析为key的值
+                            示例：https://xxxx.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/demo/getUserById/1
+                                 pattern = '/demo/getUserById/{id}'
+                                 解析后会自动填充参数id=1
+        @param login 可选参数。是否需要登录，默认False
+        @param auth 可选参数。是否需要鉴权，默认False
+        @param uToken 可选参数。是否更新token，默认False
     '''
     def decorator(func):
         @functools.wraps(func)
@@ -122,18 +128,19 @@ def put(pattern = None, login = False, auth = False, uToken = False):
 
 def delete(pattern = None, login = False, auth = False, uToken = False):
     ''' 使用方法
-    @get(pattern="/ly-test/test/{id}", login = True, auth = True, uToken = True)
-    def testFun(params, environ, start_response):
-        return ResponseEntity.ok('Hello World')
+    --
+        @delete(pattern="/ly-test/test/{id}", login = True, auth = True, uToken = True)
+        def testFun(params, environ, start_response):
+            return ResponseEntity.ok('Hello World')
 
-    :param pattern  可选参数。路径模板，以/开头，需要带上服务名和函数名。
-                    如果模板中有类似【/{key}/】或者【/{key}】或者【/{key}?】这样的字段，会将路径中对应位置的路径解析为key的值
-                    示例：https://xxxx.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/demo/getUserById/1
-                        pattern = '/demo/getUserById/{id}'
-                        解析后会自动填充参数id=1
-    :param login 可选参数。是否需要登录，默认False
-    :param auth 可选参数。是否需要鉴权，默认False
-    :param uToken 可选参数。是否更新token，默认False
+        @param pattern  可选参数。路径模板，以/开头，需要带上服务名和函数名。
+                            如果模板中有类似【/{key}/】或者【/{key}】或者【/{key}?】这样的字段，会将路径中对应位置的路径解析为key的值
+                            示例：https://xxxx.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/demo/getUserById/1
+                                 pattern = '/demo/getUserById/{id}'
+                                 解析后会自动填充参数id=1
+        @param login 可选参数。是否需要登录，默认False
+        @param auth 可选参数。是否需要鉴权，默认False
+        @param uToken 可选参数。是否更新token，默认False
     '''
     def decorator(func):
         @functools.wraps(func)
@@ -145,6 +152,7 @@ def delete(pattern = None, login = False, auth = False, uToken = False):
 
 def _commonHttpEntry(pattern, func, login = False, auth = False, uToken = False, *args, **kw):
     ''' 通用http入口， 先过滤一遍再执行_commonHttp
+    --
     '''
     res = None
     newToken = None
@@ -166,12 +174,15 @@ def _commonHttpEntry(pattern, func, login = False, auth = False, uToken = False,
     
     if not res: # 登录验证和权限验证都通过了，则执行对应的方法
         res = _commonHttp(pattern, func, *args, **kw)
+    
+    responseData = _responseFormat(res, start_response, newToken)
     _log.info('客户端%s请求:%s接口。返回结果:%s' % (http_host, environ['fc.request_uri'], res))
 
-    return responseFormat(res, start_response, newToken)
+    return responseData
 
 def _commonHttp(pattern, func, *args, **kw):
     ''' 通用的HTTP请求处理方式，post，get，put，delete都可以用这个
+    --
     '''
     # 获取接口地址
     environ = args[0]
@@ -195,8 +206,9 @@ def _commonHttp(pattern, func, *args, **kw):
 
 def _getFuncs(environ):
     ''' 获取方法列表
-    :param environ 函数计算的environ
-    :return {'GET':get方法, 'POST':post方法, 'PUT':put方法, 'DELETE':delete方法}
+    --
+        @param environ 函数计算的environ
+        @return {'GET':get方法, 'POST':post方法, 'PUT':put方法, 'DELETE':delete方法}
     '''
     context = environ['fc.context']
     function = getattr(context, 'function')
@@ -209,7 +221,22 @@ def _getFuncs(environ):
         if attr.startswith('_'):
             continue
         fn = getattr(mod, attr)
-        if callable(fn):
+        if isfunction(fn):
             method = getattr(fn, '__method__', None)
             funcs[method] = fn
     return funcs
+
+def _responseFormat(responseEntitys, start_response, token = None):
+    ''' 格式化返回数据
+    --
+        :param res 返回数据
+        :param start_response 函数计算的start_response
+        :param token 用户token
+        :return 按照函数计算的格式返回数据
+    '''
+    if not isinstance(responseEntitys, ResponseEntity):
+        raise TypeError('只支持ResponseEntity格式的返回值')
+    
+    res = responseEntitys.build(start_response, token)
+    codeRes = dataToJson(res)
+    return [json.dumps(codeRes).encode()]

@@ -6,21 +6,19 @@
 # 
 ###############################################################
 import json
+import base64
 import logging
 import fcutils
-import pymysql
-import redis
-import base64
+from .connect import getDB
+from .constant import CONF_HOST, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME
 
 _log = logging.getLogger()
 
-# 配置文件地址
-_CONF_HOST = 'https://1837732264572668.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/ly-config/getConfigByName/'
-
 def isLogin(oldPayload):
     ''' 验证是否已登录，登录则更新token
-    :return 错误返回 False
-    :return 成功返回 True
+    --
+        @return 错误返回 False
+        @return 成功返回 True
     '''
     if oldPayload == None:
         return False
@@ -28,6 +26,7 @@ def isLogin(oldPayload):
 
 def getTokenFromHeader(environ):
     ''' 验证是否存在3RDSession，存在返回解码的值失败返回None
+    --
     '''
     # 验证头信息
     if 'HTTP_3RD_SESSION' not in environ:
@@ -38,6 +37,7 @@ def getTokenFromHeader(environ):
 
 def getPayloadFromHeader(environ):
     ''' 获取头部的token里的具体内容，本地解码，不验证是否可靠
+    --
     '''
     # 验证头信息
     if 'HTTP_3RD_SESSION' not in environ:
@@ -54,18 +54,11 @@ def getPayloadFromHeader(environ):
    
     return json.loads(strPayload)
 
-def getDB():
-    # 获取数据库连接配置
-    conf = json.loads(fcutils.getDataForStr(_CONF_HOST, 'ly_common_sql.json').text)
-    db_conf = json.loads(conf['data'])
-    # 连接数据库
-    db = pymysql.connect(db_conf['url'], db_conf['username'], db_conf['password'], db_conf['database'], charset="utf8", cursorclass=pymysql.cursors.DictCursor)
-    return db
-
 def decode(data):
     ''' jwt解锁
+    --
     '''
-    pub_key = json.loads(fcutils.getDataForStr(_CONF_HOST, 'rsa_public_key.pem').text)['data']
+    pub_key = json.loads(fcutils.getDataForStr(CONF_HOST, RSA_PUBLIC_KEY_FILE_NAME).text)['data']
     request_data = fcutils.decode(data, pub_key)
     return request_data
 
@@ -134,7 +127,7 @@ def encodeToken(data):
     :param data 签名参数
     :return 成功返回加密值，失败返回None
     '''
-    conf = json.loads(fcutils.getDataForStr(_CONF_HOST, 'rsa_private_key.pem').text)
+    conf = json.loads(fcutils.getDataForStr(CONF_HOST, RSA_PRIVATE_KEY_FILE_NAME).text)
     if conf['status'] != '200':
         # 出错处理
         return None
@@ -144,11 +137,3 @@ def encodeToken(data):
     token_value = fcutils.encode(data, priv_key)
     
     return token_value
-
-def getRedis():
-    ''' 获取redis连接
-    '''
-    conf = json.loads(fcutils.getDataForStr(_CONF_HOST, 'ly_common_redis.json').text)
-    redis_conf = json.loads(conf['data'])
-    r = redis.Redis(host=redis_conf['host'], port=redis_conf['port'], db=0, password=redis_conf['password'])
-    return r

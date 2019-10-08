@@ -1,5 +1,6 @@
 import json
 from .right import encodeToken
+from fcutils import dataToJson
 
 class ResponseEntity:
 
@@ -103,5 +104,4 @@ class ResponseEntity:
         return response
 
     def __str__(self):
-    	from .utils import dataToJson
         return json.dumps({'status':self.statusCode, 'res':dataToJson(self.res)}) 
