@@ -1,5 +1,5 @@
 # 配置文件地址
-CONF_HOST = 'https://1837732264572668.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/ly-config/getConfigByName/'
+CONF_HOST = 'https://1921668875657123.cn-zhangjiakou.fc.aliyuncs.com/2016-08-15/proxy/ly-config/getConfigByName/'
 
 # mysql配置文件名字
 SQL_CONF_FILE_NAME = 'ly_common_sql.json'
@@ -25,3 +25,7 @@ CODE2SESSION_HOST = 'https://api.weixin.qq.com/sns/jscode2session?appid=%s&secre
 AUTO_INCREMENT_KEYS = 'AUTO_INCREMENT'
 # 默认主键名
 PRIMARY_KEY = 'id'
+
+def _conf_host(environ):
+    ''' 从环境中读取配置文件地址
+    '''
