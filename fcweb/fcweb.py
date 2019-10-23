@@ -6,17 +6,33 @@ from fcutils import dataToJson
 from inspect import isfunction
 from .response import ResponseEntity
 from .right import isLogin, updateToken, getTokenFromHeader, authRight, getBodyAsJson, getBodyAsStr
+from .constant import CONF_HOST
 
 _log = logging.getLogger()
 
-def fcIndex(debug = False):
+def initDB(db):
+    ''' 程序初始化，对数据库，redis等进行初始化操作。需要放在fcIndex上面
+    --
+    '''
+    def decorator(func):
+        def wrapper(*args, **kw):
+            environ = args[0]
+            start_response = args[1]
+            http_host = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
+            conf_path = 'https://{}/2016-08-15/proxy/ly-config/getConfigByName/'.format(http_host)
+
+            return func(*args, **kw)
+        return wrapper
+    return decorator
+
+def fcIndex(debug = False, dbConn = None, redisConn = None):
     ''' 程序入口，拦截原函数计算入口，使用方法如下：
     --
         @fcIndex(debug = True)
         def handler(environ, start_response):
             pass
         
-        @param debug 可选参数,是否是调试模式，默认False
+        @param debug: 可选参数,是否是调试模式，默认False
     '''
     def decorator(func):
         @functools.wraps(func)
