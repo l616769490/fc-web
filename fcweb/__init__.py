@@ -1,4 +1,12 @@
-__version__ = '0.5.0'
+__version__ = '0.6.0'
+
+from .connect import (
+    getDB, getRedis, userCode2Session, guideCode2Session
+)
+
+from .constant import (
+    getConfByName, initConfCenter
+)
 
 from .fcweb import (
     fcIndex, get, post, put, delete
@@ -12,8 +20,6 @@ from .response import ResponseEntity
 
 from .utils import pathMatch, createId
 
-from .constant import *
-
-from .connect import (
-    getDB, getRedis, userCode2Session, guideCode2Session
+from .sign import (
+    Sign
 )

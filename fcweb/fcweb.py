@@ -1,29 +1,12 @@
 import json
 import logging
 import functools
-from .utils import pathMatch
-from fcutils import dataToJson
+import importlib
 from inspect import isfunction
 from .response import ResponseEntity
 from .right import isLogin, updateToken, getTokenFromHeader, authRight, getBodyAsJson, getBodyAsStr
-from .constant import CONF_HOST
 
 _log = logging.getLogger()
-
-def initDB(db):
-    ''' 程序初始化，对数据库，redis等进行初始化操作。需要放在fcIndex上面
-    --
-    '''
-    def decorator(func):
-        def wrapper(*args, **kw):
-            environ = args[0]
-            start_response = args[1]
-            http_host = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
-            conf_path = 'https://{}/2016-08-15/proxy/ly-config/getConfigByName/'.format(http_host)
-
-            return func(*args, **kw)
-        return wrapper
-    return decorator
 
 def fcIndex(debug = False, dbConn = None, redisConn = None):
     ''' 程序入口，拦截原函数计算入口，使用方法如下：
@@ -40,6 +23,10 @@ def fcIndex(debug = False, dbConn = None, redisConn = None):
             environ = args[0]
             start_response = args[1]
 
+            # 初始化
+            from .constant import initConfCenter
+            initConfCenter(environ)
+            
             try:
                 return _run(*args, **kw)
             except Exception as e:
@@ -58,7 +45,7 @@ def _run(*args, **kw):
     environ = args[0]
     start_response = args[1]
     request_method = environ['REQUEST_METHOD']
-    
+
     # 获取方法列表
     funcs = _getFuncs(environ)
     
@@ -176,13 +163,14 @@ def _commonHttpEntry(pattern, func, login = False, auth = False, uToken = False,
     start_response = args[1]
     
     http_host = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
+
     oldToken = getTokenFromHeader(environ)
     if login:   # 是否需要验证登录
         if not isLogin(oldToken):
             _log.warning('客户端%s请求:%s接口权限不足' % (http_host, environ['fc.request_uri']))
             res = ResponseEntity.unauthorized('用户未登录，或登录已过期')
     if auth:    # 是否需要验证权限
-        if not authRight(oldToken, environ['fc.request_uri']):
+        if not authRight(oldToken, environ):
             _log.warning('客户端%s请求:%s接口权限不足' % (http_host ,environ['fc.request_uri']))
             res = ResponseEntity.unauthorized('权限不足')
     if uToken: # 是否需要更新token
@@ -206,6 +194,7 @@ def _commonHttp(pattern, func, *args, **kw):
     requestUri = environ['fc.request_uri']
     fcInterfaceURL = requestUri.split('proxy')[1].replace('.LATEST', '')
     # 解析参数
+    from .utils import pathMatch
     params = pathMatch(fcInterfaceURL, pattern)
     body = {}
     try:
@@ -221,7 +210,7 @@ def _commonHttp(pattern, func, *args, **kw):
     return res
 
 def _getFuncs(environ):
-    ''' 获取方法列表
+    ''' 获取方法列表，同时替换掉有标记的方法
     --
         @param environ 函数计算的environ
         @return {'GET':get方法, 'POST':post方法, 'PUT':put方法, 'DELETE':delete方法}
@@ -230,16 +219,21 @@ def _getFuncs(environ):
     function = getattr(context, 'function')
     handler = getattr(function, 'handler')
     modName = handler.split('.')[0]
-
-    mod = __import__(modName, globals(), locals())
+    mod = importlib.import_module(modName)
+    # mod = __import__(modName, globals(), locals())
     funcs = {}
     for attr in dir(mod):
-        if attr.startswith('_'):
+        if attr.startswith('__'):
             continue
         fn = getattr(mod, attr)
+        
         if isfunction(fn):
             method = getattr(fn, '__method__', None)
             funcs[method] = fn
+        
+        from .sign import Sign
+        if isinstance(fn, Sign):    # 替换标记
+            setattr(mod, attr, fn.replace(environ))
     return funcs
 
 def _responseFormat(responseEntitys, start_response, token = None):
@@ -254,5 +248,6 @@ def _responseFormat(responseEntitys, start_response, token = None):
         raise TypeError('只支持ResponseEntity格式的返回值')
     
     res = responseEntitys.build(start_response, token)
+    from fcutils import dataToJson
     codeRes = dataToJson(res)
     return [json.dumps(codeRes).encode()]

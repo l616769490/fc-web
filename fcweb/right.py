@@ -8,9 +8,9 @@
 import json
 import base64
 import logging
-import fcutils
 from .connect import getDB
-from .constant import CONF_HOST, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME
+from .constant import getConfByName, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME
+from fcutils import getConfig, getDataForStr, decode, timeLater, encode
 
 _log = logging.getLogger()
 
@@ -33,7 +33,7 @@ def getTokenFromHeader(environ):
         return None
     
     http3RdSession = environ['HTTP_3RD_SESSION'].replace('\\n', '\n')
-    return decode(http3RdSession)
+    return decode(http3RdSession, getConfByName(RSA_PUBLIC_KEY_FILE_NAME))
 
 def getPayloadFromHeader(environ):
     ''' 获取头部的token里的具体内容，本地解码，不验证是否可靠
@@ -51,35 +51,27 @@ def getPayloadFromHeader(environ):
         # not a multiple of 4, add padding:
         ss += '=' * (4 - len(ss) % 4)
     strPayload = str(base64.b64decode(ss, '-_'), "utf-8")
-   
     return json.loads(strPayload)
-
-def decode(data):
-    ''' jwt解锁
-    --
-    '''
-    pub_key = json.loads(fcutils.getDataForStr(CONF_HOST, RSA_PUBLIC_KEY_FILE_NAME).text)['data']
-    request_data = fcutils.decode(data, pub_key)
-    return request_data
 
 def updateToken(payload):
     ''' 更新token
     '''
     # 一个月
     if payload['keep'] == 1:
-        exp = fcutils.timeLater(1, 'month')
+        exp = timeLater(1, 'month')
         payload['exp'] = exp
         return payload
     else:
-        exp = fcutils.timeLater(0.5, 'hour')
+        exp = timeLater(0.5, 'hour')
         payload['exp'] = exp
         return payload
 
-def authRight(token, requestUri):
+def authRight(token, environ):
     ''' 权限验证，成功返回True，失败返回False
     '''
-    db = getDB()
-    cursor = db.cursor()
+    requestUri = environ['fc.request_uri'] 
+    conn = getDB.replace(environ)
+    cursor = conn.cursor()
     # seller_user, sellerId, roles, keep
     if token == None or 'roles' not in token:
         return False
@@ -120,20 +112,12 @@ def getBodyAsStr(environ):
         request_body_size = 0
     return environ['wsgi.input'].read(request_body_size)
     
-
 def encodeToken(data):
     ''' 加密token
     格式：header.payload.signature
     :param data 签名参数
     :return 成功返回加密值，失败返回None
     '''
-    conf = json.loads(fcutils.getDataForStr(CONF_HOST, RSA_PRIVATE_KEY_FILE_NAME).text)
-    if conf['status'] != '200':
-        # 出错处理
-        return None
-
-    priv_key = conf['data']
-
-    token_value = fcutils.encode(data, priv_key)
+    token_value = encode(data, getConfByName(RSA_PRIVATE_KEY_FILE_NAME))
     
     return token_value
