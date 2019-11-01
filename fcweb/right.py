@@ -9,7 +9,7 @@ import json
 import base64
 import logging
 from .connect import getDB
-from .constant import getConfByName, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME
+from .constant import getConfByName, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME, getEnviron, FC_ENVIRON, FC_START_RESPONSE
 from fcutils import getConfig, getDataForStr, decode, timeLater, encode
 
 _log = logging.getLogger()
@@ -24,10 +24,11 @@ def isLogin(oldPayload):
         return False
     return True
 
-def getTokenFromHeader(environ):
+def getTokenFromHeader():
     ''' 验证是否存在3RDSession，存在返回解码的值失败返回None
     --
     '''
+    environ = getEnviron(FC_ENVIRON)
     # 验证头信息
     if 'HTTP_3RD_SESSION' not in environ:
         return None
@@ -35,10 +36,11 @@ def getTokenFromHeader(environ):
     http3RdSession = environ['HTTP_3RD_SESSION'].replace('\\n', '\n')
     return decode(http3RdSession, getConfByName(RSA_PUBLIC_KEY_FILE_NAME))
 
-def getPayloadFromHeader(environ):
+def getPayloadFromHeader():
     ''' 获取头部的token里的具体内容，本地解码，不验证是否可靠
     --
     '''
+    environ = getEnviron(FC_ENVIRON)
     # 验证头信息
     if 'HTTP_3RD_SESSION' not in environ:
         return None
@@ -66,9 +68,10 @@ def updateToken(payload):
         payload['exp'] = exp
         return payload
 
-def authRight(token, environ):
+def authRight(token):
     ''' 权限验证，成功返回True，失败返回False
     '''
+    environ = getEnviron(FC_ENVIRON)
     requestUri = environ['fc.request_uri'] 
     conn = getDB.replace(environ)
     cursor = conn.cursor()
@@ -94,18 +97,20 @@ def authRight(token, environ):
 
     return fcInterfaceURL in interfaces
 
-def getBodyAsJson(environ):
+def getBodyAsJson():
     ''' 获取json格式的请求体
     '''
+    environ = getEnviron(FC_ENVIRON)
     try:
         request_body_size = int(environ.get('CONTENT_LENGTH', 0))
     except (ValueError):
         request_body_size = 0
     return json.loads(environ['wsgi.input'].read(request_body_size)) if request_body_size > 0 else None
 
-def getBodyAsStr(environ):
+def getBodyAsStr():
     ''' 获取string格式的请求体
     '''
+    environ = getEnviron(FC_ENVIRON)
     try:
         request_body_size = int(environ.get('CONTENT_LENGTH', 0))
     except (ValueError):

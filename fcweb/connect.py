@@ -2,18 +2,19 @@ import json
 import redis
 import pymysql
 import fcutils
-from .sign import DBSign, RedisSign
 from fcutils import getConfig
+from .sign import DBSign, RedisSign
+from .constant import getConfByName, CODE2SESSION_HOST, WX_GUIDE_FILE_NAME, WX_USER_FILE_NAME
 
 @DBSign
-def getDB():
+def dbConn():
     """ 获取数据库连接
     --
     """
     pass
 
 @RedisSign
-def getRedis():
+def redisConn():
     """ 获取redis连接
     --
     """
@@ -53,14 +54,9 @@ def _getCode2Session(code, confName):
                 "unionid":"sadasfsdfsdfsrehbf"
             }
     '''
-    # 读取配置文件
-    conf = json.loads(fcutils.getDataForStr(CONF_HOST, confName).text)
-    if conf['status'] != '200':
-        return None
-    confData = json.loads(conf['data'])
+    confData = getConfByName(confName)
     appid = confData['appid']
     secret = confData['secret']
     code2session_host = CODE2SESSION_HOST % (appid, secret, code)
-
     code2Session = fcutils.getData(code2session_host).text
     return json.loads(code2Session)

@@ -22,6 +22,10 @@ RSA_PRIVATE_KEY_FILE_NAME = 'rsa_private_key'
 # 微信open Id请求地址
 CODE2SESSION_HOST = 'https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code'
 
+FC_ENVIRON = 'environ'
+FC_START_RESPONSE = 'start_response'
+
+
 from fcutils import getConfig, getConfigFromConfCenter
 
 _dict = {}
@@ -33,8 +37,8 @@ def getConfByName(confName):
     if confName in _dict:
         return _dict[confName]
     elif CONF_CENTER_NAME in _dict:
-        conf_center = _dict[CONF_CENTER_NAME]
-        res = getConfigFromConfCenter(conf_center['url'], confName, conf_center['pwd'] )
+        confCenter = _dict[CONF_CENTER_NAME]
+        res = getConfigFromConfCenter(confCenter['url'], confName, confCenter['pwd'] )
         if res.status_code != 200:
             raise Exception('从配置中心获取密钥失败！')
         data = res.text
@@ -47,19 +51,35 @@ def getConfByName(confName):
     else:
         raise Exception('')
 
-def initConfCenter(environ):
-    ''' 获取配置中心url和pwd
+_dict = {}
+def setEnviron(k, v):
+    ''' 设置环境
     '''
     global _dict
+    _dict[k] = v
+
+def getEnviron(k):
+    ''' 获取环境
+    '''
+    global _dict
+    return _dict.get(k, None)
+
+def init(environ, start_response):
+    ''' 设置环境变量, 设置配置中心url和pwd
+    '''
+    global _dict
+    setEnviron(FC_ENVIRON, environ)
+    setEnviron(FC_START_RESPONSE, start_response)
     try:
-        conf_center = getConfig(CONF_CENTER_NAME)
-        if not conf_center:
+        confCenter = getConfig(CONF_CENTER_NAME)
+        if not confCenter:
             raise Exception('配置中心的url和pwd必须配置')
 
-        if not conf_center['url'].startswith('http'):
+        if not confCenter['url'].startswith('http'):
+            environ = getEnviron(FC_ENVIRON)
             httpHost = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
-            conf_center['url'] = 'https://{}/2016-08-15/proxy/{}/'.format(httpHost, conf_center['url'])
+            confCenter['url'] = 'https://{}/2016-08-15/proxy/{}/'.format(httpHost, confCenter['url'])
         
-        _dict[CONF_CENTER_NAME] = conf_center
+        _dict[CONF_CENTER_NAME] = confCenter
     except Exception as e:
         raise Exception('请在application.py中配置配置中心url和pwd')

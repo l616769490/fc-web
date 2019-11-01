@@ -1,5 +1,6 @@
 import json
 from .right import encodeToken
+from .constant import getEnviron, FC_START_RESPONSE
 
 class ResponseEntity:
 
@@ -70,11 +71,11 @@ class ResponseEntity:
         self.num = num
         return self
     
-    def build(self, start_response, token = None):
+    def build(self, token = None):
         ''' 生成请求
-        :param start_response 函数计算的token
         :param token 返回给用户的token
         '''
+        start_response = getEnviron(FC_START_RESPONSE)
         start_response(self.statusCode, self.response_headers)
         response = {}
 

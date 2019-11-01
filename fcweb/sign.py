@@ -6,31 +6,35 @@ from fcutils import getConfig, getConfigFromConfCenter
 
 class Sign(metaclass = abc.ABCMeta):
 
-    def __init__(self, func):
+    def __init__(self, func, *args, **kw):
         ''' 用于标记实际运行时需要被替换的方法，使用时继承该类并在replace方法中书写实际的运行方法
         --
         '''
-        pass
+        self.func = func
+        self.args = args
+        self.kw = kw
 
     @abc.abstractmethod
-    def replace(self, environ):
+    def replace(self):
         ''' 覆盖此方法，实际运行时会调用该方法以替换掉被标记的方法
         --
         '''
         pass
 
 class DBSign(Sign):
-    def __init__(self, func):
+    def __init__(self, func, *args, **kw):
         ''' 获取配置中心数据。
             需要有一个application.py文件，该文件配置了配置中心的url,pwd。
             配置中心配置名为：conf_center，无默认值，必须配置。
             sql配置文件名为：sql_name，默认值为'sql'
         '''
-        super().__init__(func)
+        super().__init__(func, *args, **kw)
     
-    def replace(self, environ):
+    def replace(self):
         '''@param environ: 函数计算环境变量
         '''
+        from .constant import getEnviron, FC_ENVIRON
+        environ = getEnviron(FC_ENVIRON)
         try:
             confData = getConfig(['conf_center', 'sql_name'])
         except Exception as e:
@@ -52,17 +56,19 @@ class DBSign(Sign):
         return conn
 
 class RedisSign(Sign):
-    def __init__(self, func):
+    def __init__(self, func, *args, **kw):
         ''' 获取配置中心数据。
             需要有一个application.py文件，该文件配置了配置中心的url,pwd。
             配置中心配置名为：conf_center，无默认值，必须配置。
             redis配置文件名为：redis_name，默认值为'redis'
         '''
-        super().__init__(func)
+        super().__init__(func, *args, **kw)
     
-    def replace(self, environ):
+    def replace(self):
         '''@param environ: 函数计算环境变量
         '''
+        from .constant import getEnviron, FC_ENVIRON
+        environ = getEnviron(FC_ENVIRON)
         try:
             confData = getConfig(['conf_center', 'redis_name'])
         except Exception as e:

@@ -4,11 +4,12 @@ import functools
 import importlib
 from inspect import isfunction
 from .response import ResponseEntity
+from .constant import getEnviron, FC_ENVIRON, FC_START_RESPONSE
 from .right import isLogin, updateToken, getTokenFromHeader, authRight, getBodyAsJson, getBodyAsStr
 
 _log = logging.getLogger()
 
-def fcIndex(debug = False, dbConn = None, redisConn = None):
+def fcIndex(debug = False):
     ''' 程序入口，拦截原函数计算入口，使用方法如下：
     --
         @fcIndex(debug = True)
@@ -24,38 +25,38 @@ def fcIndex(debug = False, dbConn = None, redisConn = None):
             start_response = args[1]
 
             # 初始化
-            from .constant import initConfCenter
-            initConfCenter(environ)
+            from .constant import init
+            init(environ, start_response)
             
             try:
-                return _run(*args, **kw)
+                return _run()
             except Exception as e:
                 _log.error(e)
                 if debug:
                     return e
                 else:
                     res = ResponseEntity.serverError('服务器发生错误，请联系管理员查看系统日志!')
-                    return _responseFormat(res, start_response)
+                    return _responseFormat(res)
         return wrapper
     return decorator
 
-def _run(*args, **kw):
+def _run():
     ''' 根据请求类型（GET，POST）执行对应的方法
     '''
-    environ = args[0]
-    start_response = args[1]
+    environ = getEnviron(FC_ENVIRON)
+    start_response = getEnviron(FC_START_RESPONSE)
     request_method = environ['REQUEST_METHOD']
 
     # 获取方法列表
-    funcs = _getFuncs(environ)
+    funcs = _getFuncs()
     
     if request_method in funcs:
         # 选择方法
         fn = funcs[request_method]
-        return fn(*args, **kw)
+        return fn()
     else:
         res = ResponseEntity.badRequest('请求类型不支持！') 
-        return _responseFormat(res, start_response)
+        return _responseFormat(res)
 
 def get(pattern = None, login = False, auth = False, uToken = False):
     ''' 使用方法
@@ -75,8 +76,8 @@ def get(pattern = None, login = False, auth = False, uToken = False):
     '''
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, **kw):
-            return _commonHttpEntry(pattern, func, login, auth, uToken, *args, **kw)
+        def wrapper():
+            return _commonHttpEntry(pattern, func, login, auth, uToken)
         wrapper.__method__ = 'GET'
         return wrapper
     return decorator
@@ -99,8 +100,8 @@ def post(pattern = None, login = False, auth = False, uToken = False):
     '''
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, **kw):
-            return _commonHttpEntry(pattern, func, login, auth, uToken, *args, **kw)
+        def wrapper():
+            return _commonHttpEntry(pattern, func, login, auth, uToken)
         wrapper.__method__ = 'POST'
         return wrapper
     return decorator
@@ -123,8 +124,8 @@ def put(pattern = None, login = False, auth = False, uToken = False):
     '''
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, **kw):
-            return _commonHttpEntry(pattern, func, login, auth, uToken, *args, **kw)
+        def wrapper():
+            return _commonHttpEntry(pattern, func, login, auth, uToken)
         wrapper.__method__ = 'PUT'
         return wrapper
     return decorator
@@ -147,50 +148,50 @@ def delete(pattern = None, login = False, auth = False, uToken = False):
     '''
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(*args, **kw):
-            return _commonHttpEntry(pattern, func, login, auth, uToken, *args, **kw)
+        def wrapper():
+            return _commonHttpEntry(pattern, func, login, auth, uToken)
         wrapper.__method__ = 'DELETE'
         return wrapper
     return decorator
 
-def _commonHttpEntry(pattern, func, login = False, auth = False, uToken = False, *args, **kw):
+def _commonHttpEntry(pattern, func, login = False, auth = False, uToken = False):
     ''' 通用http入口， 先过滤一遍再执行_commonHttp
     --
     '''
     res = None
     newToken = None
-    environ = args[0]
-    start_response = args[1]
+    environ = getEnviron(FC_ENVIRON)
+    start_response = getEnviron(FC_START_RESPONSE)
     
     http_host = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
 
-    oldToken = getTokenFromHeader(environ)
+    oldToken = getTokenFromHeader()
     if login:   # 是否需要验证登录
         if not isLogin(oldToken):
             _log.warning('客户端%s请求:%s接口权限不足' % (http_host, environ['fc.request_uri']))
             res = ResponseEntity.unauthorized('用户未登录，或登录已过期')
     if auth:    # 是否需要验证权限
-        if not authRight(oldToken, environ):
+        if not authRight(oldToken):
             _log.warning('客户端%s请求:%s接口权限不足' % (http_host ,environ['fc.request_uri']))
             res = ResponseEntity.unauthorized('权限不足')
     if uToken: # 是否需要更新token
         newToken = updateToken(oldToken)
     
     if not res: # 登录验证和权限验证都通过了，则执行对应的方法
-        res = _commonHttp(pattern, func, *args, **kw)
+        res = _commonHttp(pattern, func)
     
-    responseData = _responseFormat(res, start_response, newToken)
+    responseData = _responseFormat(res, newToken)
     _log.info('客户端%s请求:%s接口。返回结果:%s' % (http_host, environ['fc.request_uri'], res))
 
     return responseData
 
-def _commonHttp(pattern, func, *args, **kw):
+def _commonHttp(pattern, func):
     ''' 通用的HTTP请求处理方式，post，get，put，delete都可以用这个
     --
     '''
     # 获取接口地址
-    environ = args[0]
-    start_response = args[1]
+    environ = getEnviron(FC_ENVIRON)
+    start_response = getEnviron(FC_START_RESPONSE)
     requestUri = environ['fc.request_uri']
     fcInterfaceURL = requestUri.split('proxy')[1].replace('.LATEST', '')
     # 解析参数
@@ -198,23 +199,24 @@ def _commonHttp(pattern, func, *args, **kw):
     params = pathMatch(fcInterfaceURL, pattern)
     body = {}
     try:
-        body = getBodyAsJson(environ)
+        body = getBodyAsJson()
     except :
-        body = getBodyAsStr(environ)
+        body = getBodyAsStr()
     
     if params == None:
         params = {}
     if body:
         params.update(body)
-    res = func(params, environ, start_response)
+    res = func(params)
     return res
 
-def _getFuncs(environ):
+def _getFuncs():
     ''' 获取方法列表，同时替换掉有标记的方法
     --
         @param environ 函数计算的environ
         @return {'GET':get方法, 'POST':post方法, 'PUT':put方法, 'DELETE':delete方法}
     '''
+    environ = getEnviron(FC_ENVIRON)
     context = environ['fc.context']
     function = getattr(context, 'function')
     handler = getattr(function, 'handler')
@@ -233,21 +235,20 @@ def _getFuncs(environ):
         
         from .sign import Sign
         if isinstance(fn, Sign):    # 替换标记
-            setattr(mod, attr, fn.replace(environ))
+            setattr(mod, attr, fn.replace())
     return funcs
 
-def _responseFormat(responseEntitys, start_response, token = None):
+def _responseFormat(responseEntitys, token = None):
     ''' 格式化返回数据
     --
         :param res 返回数据
-        :param start_response 函数计算的start_response
         :param token 用户token
         :return 按照函数计算的格式返回数据
     '''
     if not isinstance(responseEntitys, ResponseEntity):
         raise TypeError('只支持ResponseEntity格式的返回值')
     
-    res = responseEntitys.build(start_response, token)
+    res = responseEntitys.build(token)
     from fcutils import dataToJson
     codeRes = dataToJson(res)
     return [json.dumps(codeRes).encode()]
