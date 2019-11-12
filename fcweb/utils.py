@@ -36,7 +36,7 @@ def pathMatch(path, pattern = None):
                     key = a[1:-1]
                     if len(key) > 0:
                         if key not in params:
-                            params[key] = _format(paths2[i])
+                            params[key] = _format(unquote(paths2[i], 'utf-8'))
     return params
 
 def _format(s):
