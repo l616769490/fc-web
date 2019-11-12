@@ -8,7 +8,7 @@
 import json
 import base64
 import logging
-from .connect import getDB
+from .connect import dbConn
 from .constant import getConfByName, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME, getEnviron, FC_ENVIRON, FC_START_RESPONSE
 from fcutils import getConfig, getDataForStr, decode, timeLater, encode
 
@@ -73,7 +73,7 @@ def authRight(token):
     '''
     environ = getEnviron(FC_ENVIRON)
     requestUri = environ['fc.request_uri'] 
-    conn = getDB.replace(environ)
+    conn = dbConn.replace()
     cursor = conn.cursor()
     # seller_user, sellerId, roles, keep
     if token == None or 'roles' not in token:

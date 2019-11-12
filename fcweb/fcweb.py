@@ -32,11 +32,12 @@ def fcIndex(debug = False):
                 return _run()
             except Exception as e:
                 _log.error(e)
+                res = None
                 if debug:
-                    return e
+                    res = ResponseEntity.badRequest(e)
                 else:
-                    res = ResponseEntity.serverError('服务器发生错误，请联系管理员查看系统日志!')
-                    return _responseFormat(res)
+                    res = ResponseEntity.badRequest('服务器发生错误，请联系管理员查看系统日志!')
+                return _responseFormat(res)
         return wrapper
     return decorator
 

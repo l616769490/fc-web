@@ -5,6 +5,7 @@
 #####################################################################
 import json
 import time
+from urllib.parse import unquote
 
 def pathMatch(path, pattern = None):
     ''' 解析路径
@@ -24,7 +25,7 @@ def pathMatch(path, pattern = None):
             for a in arr:
                 aa = a.split('=')
                 if len(aa) == 2:
-                    params[aa[0]] = _format(aa[1])
+                    params[aa[0]] = _format(unquote(aa[1], 'utf-8'))
     # 获取模板中的参数
     if pattern:
         paths1 = pattern.split('/')

@@ -7,7 +7,7 @@ from fcutils import getConfig, getConfigFromConfCenter
 class Sign(metaclass = abc.ABCMeta):
 
     def __init__(self, func, *args, **kw):
-        ''' 用于标记实际运行时需要被替换的方法，使用时继承该类并在replace方法中书写实际的运行方法
+        ''' 用于全局变量的赋值，使用时继承该类并在replace方法中书写实际的运行方法
         --
         '''
         self.func = func
@@ -33,21 +33,11 @@ class DBSign(Sign):
     def replace(self):
         '''@param environ: 函数计算环境变量
         '''
-        from .constant import getEnviron, FC_ENVIRON
+        from .constant import getEnviron, FC_ENVIRON, CONF_CENTER_NAME, SQL_CONF_FILE_NAME
         environ = getEnviron(FC_ENVIRON)
-        try:
-            confData = getConfig(['conf_center', 'sql_name'])
-        except Exception as e:
-            pass
-        confData = getConfig(['conf_center', 'sql_name'])
-        confCenter = confData['conf_center']
-        confSqlName = confData['sql_name'] if confData['sql_name'] else 'sql'
+        confCenter = getEnviron(CONF_CENTER_NAME)
 
-        if not confCenter['url'].startswith('http'):
-            httpHost = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
-            confCenter['url'] = 'https://{}/2016-08-15/proxy/{}/'.format(httpHost, confCenter['url'])
-
-        res = getConfigFromConfCenter(confCenter['url'], confSqlName, confCenter['pwd'] )
+        res = getConfigFromConfCenter(confCenter['url'], SQL_CONF_FILE_NAME, confCenter['pwd'] )
         if res.status_code != 200:
             raise Exception('读取配置中心失败！')
         data = json.loads(res.text)
@@ -67,21 +57,11 @@ class RedisSign(Sign):
     def replace(self):
         '''@param environ: 函数计算环境变量
         '''
-        from .constant import getEnviron, FC_ENVIRON
+        from .constant import getEnviron, FC_ENVIRON, CONF_CENTER_NAME, SQL_CONF_FILE_NAME
         environ = getEnviron(FC_ENVIRON)
-        try:
-            confData = getConfig(['conf_center', 'redis_name'])
-        except Exception as e:
-            pass
-        confData = getConfig(['conf_center', 'redis_name'])
-        confCenter = confData['conf_center']
-        confRedisName = confData['redis_name'] if confData['redis_name'] else 'redis'
+        confCenter = getEnviron(CONF_CENTER_NAME)
 
-        if not confCenter['url'].startswith('http'):
-            httpHost = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
-            confCenter['url'] = 'https://{}/2016-08-15/proxy/{}/'.format(httpHost, confCenter['url'])
-
-        res = getConfigFromConfCenter(confCenter['url'], confRedisName, confCenter['pwd'] )
+        res = getConfigFromConfCenter(confCenter['url'], SQL_CONF_FILE_NAME, confCenter['pwd'] )
         if res.status_code != 200:
             raise Exception('读取配置中心失败！')
         data = json.loads(res.text)

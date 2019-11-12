@@ -73,12 +73,12 @@ def init(environ, start_response):
     try:
         confCenter = getConfig(CONF_CENTER_NAME)
         if not confCenter:
-            raise Exception('配置中心的url和pwd必须配置')
+            confCenter = {'url': 'config/config/', 'pwd': '123456'}
 
         if not confCenter['url'].startswith('http'):
             environ = getEnviron(FC_ENVIRON)
             httpHost = environ['HTTP_HOST'] if 'HTTP_HOST' in environ else environ['REMOTE_ADDR']
-            confCenter['url'] = 'https://{}/2016-08-15/proxy/{}/'.format(httpHost, confCenter['url'])
+            confCenter['url'] = 'https://{}/2016-08-15/proxy{}'.format(httpHost, confCenter['url'] if confCenter['url'].startswith('/') else '/' + confCenter['url'])
         
         _dict[CONF_CENTER_NAME] = confCenter
     except Exception as e:
