@@ -6,6 +6,7 @@
 import json
 import time
 from urllib.parse import unquote
+from .constant import getEnviron, FC_ENVIRON
 
 def pathMatch(path, pattern = None):
     ''' 解析路径
@@ -66,9 +67,10 @@ def _format(s):
     except ValueError:
         return s
 
-def createId(environ):
+def createId():
     ''' 生成ID
     '''
+    environ = getEnviron(FC_ENVIRON)
     temp = str(time.time()).replace('.', '')
     if len(temp) < 17:
         temp = ("0" * (17-len(temp))) + temp 
