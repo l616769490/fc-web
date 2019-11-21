@@ -1,5 +1,4 @@
 import json
-import redis
 import pymysql
 import fcutils
 from fcutils import getConfig
