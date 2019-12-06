@@ -4,6 +4,8 @@ import pymysql
 import importlib
 from fcutils import getConfig, getConfigFromConfCenter
 
+__all__ = ['Sign', 'DBSign', 'RedisSign']
+
 class Sign(metaclass = abc.ABCMeta):
 
     def __init__(self, func, *args, **kw):

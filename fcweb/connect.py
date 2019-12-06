@@ -5,6 +5,10 @@ from fcutils import getConfig
 from .sign import DBSign, RedisSign
 from .constant import getConfByName, CODE2SESSION_HOST, WX_GUIDE_FILE_NAME, WX_USER_FILE_NAME
 
+__all__ = ['dbConn', 'redisConn', 'guideCode2Session',
+           'userCode2Session']
+
+
 @DBSign
 def dbConn():
     """ 获取数据库连接
@@ -12,12 +16,14 @@ def dbConn():
     """
     pass
 
+
 @RedisSign
 def redisConn():
     """ 获取redis连接
     --
     """
     pass
+
 
 def guideCode2Session(code):
     ''' 导游端获取sessionkey和openid(unionid)
@@ -31,6 +37,7 @@ def guideCode2Session(code):
     '''
     return _getCode2Session(code, WX_GUIDE_FILE_NAME)
 
+
 def userCode2Session(code):
     ''' 游客端获取sessionkey和openid(unionid)
     --
@@ -42,6 +49,7 @@ def userCode2Session(code):
             }
     '''
     return _getCode2Session(code, WX_USER_FILE_NAME)
+
 
 def _getCode2Session(code, confName):
     ''' 获取sessionkey和openid(unionid)

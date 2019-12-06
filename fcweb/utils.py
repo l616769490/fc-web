@@ -8,7 +8,10 @@ import time
 from urllib.parse import unquote
 from .constant import getEnviron, FC_ENVIRON
 
-def pathMatch(path, pattern = None):
+__all__ = ['pathMatch', 'createId']
+
+
+def pathMatch(path, pattern=None):
     ''' 解析路径
     --
         :params path 路径，路径中形如【xxxx?key=value&key=value】的字符串会被解析成键值对
@@ -40,32 +43,34 @@ def pathMatch(path, pattern = None):
                             params[key] = _format(unquote(paths2[i], 'utf-8'))
     return params
 
+
 def _format(s):
     ''' 把传入的字符串格式化成对应的格式：字符串；数字；json
     '''
     if not s or len(s) == 0:
         return ''
-    
+
     if s.startswith('{') and s.endswith('}') or s.startswith('[') and s.endswith(']'):
         try:
             return json.loads(s)
-        except :
+        except:
             return s
-    
+
     if s.isdigit():
         if s.startswith('0'):
             return s
         else:
             return int(s)
-    
+
     if s.startswith('-') and s[1:].isdigit():
         return int(s)
-    
+
     try:
         f = float(s)
         return f
     except ValueError:
         return s
+
 
 def createId():
     ''' 生成ID
@@ -73,7 +78,7 @@ def createId():
     environ = getEnviron(FC_ENVIRON)
     temp = str(time.time()).replace('.', '')
     if len(temp) < 17:
-        temp = ("0" * (17-len(temp))) + temp 
+        temp = ("0" * (17-len(temp))) + temp
     if len(temp) > 17:
         temp = temp[:17]
 

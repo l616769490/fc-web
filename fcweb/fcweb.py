@@ -7,6 +7,8 @@ from .response import ResponseEntity
 from .constant import getEnviron, FC_ENVIRON, FC_START_RESPONSE
 from .right import isLogin, updateToken, getTokenFromHeader, authRight, getBodyAsJson, getBodyAsStr
 
+__all__ = ['fcIndex', 'get', 'post', 'put', 'delete']
+
 _log = logging.getLogger()
 
 def fcIndex(debug = False):

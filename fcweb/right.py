@@ -1,18 +1,24 @@
 ###############################################################
-# 
+#
 # 权限鉴定
-# 
-# 
-# 
+#
+#
+#
 ###############################################################
 import json
 import base64
 import logging
 from .connect import dbConn
-from .constant import getConfByName, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME, getEnviron, FC_ENVIRON, FC_START_RESPONSE
 from fcutils import getConfig, getDataForStr, decode, timeLater, encode
+from .constant import getConfByName, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME, getEnviron, FC_ENVIRON, FC_START_RESPONSE
+
+__all__ = ['isLogin', 'getTokenFromHeader',
+           'getPayloadFromHeader', 'updateToken',
+           'authRight', 'getBodyAsJson',
+           'getBodyAsStr', 'encodeToken']
 
 _log = logging.getLogger()
+
 
 def isLogin(oldPayload):
     ''' 验证是否已登录，登录则更新token
@@ -24,6 +30,7 @@ def isLogin(oldPayload):
         return False
     return True
 
+
 def getTokenFromHeader():
     ''' 验证是否存在3RDSession，存在返回解码的值失败返回None
     --
@@ -32,9 +39,10 @@ def getTokenFromHeader():
     # 验证头信息
     if 'HTTP_3RD_SESSION' not in environ:
         return None
-    
+
     http3RdSession = environ['HTTP_3RD_SESSION'].replace('\\n', '\n')
     return decode(http3RdSession, getConfByName(RSA_PUBLIC_KEY_FILE_NAME))
+
 
 def getPayloadFromHeader():
     ''' 获取头部的token里的具体内容，本地解码，不验证是否可靠
@@ -44,16 +52,17 @@ def getPayloadFromHeader():
     # 验证头信息
     if 'HTTP_3RD_SESSION' not in environ:
         return None
-    
+
     http3RdSession = environ['HTTP_3RD_SESSION'].replace('\\n', '\n')
     strPayload = {}
-    
+
     ss = http3RdSession.split('.')[1]
     if len(ss) % 4:
         # not a multiple of 4, add padding:
         ss += '=' * (4 - len(ss) % 4)
     strPayload = str(base64.b64decode(ss, '-_'), "utf-8")
     return json.loads(strPayload)
+
 
 def updateToken(payload):
     ''' 更新token
@@ -68,11 +77,12 @@ def updateToken(payload):
         payload['exp'] = exp
         return payload
 
+
 def authRight(token):
     ''' 权限验证，成功返回True，失败返回False
     '''
     environ = getEnviron(FC_ENVIRON)
-    requestUri = environ['fc.request_uri'] 
+    requestUri = environ['fc.request_uri']
     conn = dbConn.replace()
     cursor = conn.cursor()
     # seller_user, sellerId, roles, keep
@@ -82,7 +92,7 @@ def authRight(token):
     if '?' in fcInterfaceURL:
         index = fcInterfaceURL.rfind('?')
         fcInterfaceURL = fcInterfaceURL[:index]
-    
+
     roles = ','.join(str(r['id']) for r in token['roles'])
     # 获取该用户所有角色支持的接口集合
     sql = '''SELECT interface FROM ly_auth_interface WHERE id IN (
@@ -97,6 +107,7 @@ def authRight(token):
 
     return fcInterfaceURL in interfaces
 
+
 def getBodyAsJson():
     ''' 获取json格式的请求体
     '''
@@ -107,6 +118,7 @@ def getBodyAsJson():
         request_body_size = 0
     return json.loads(environ['wsgi.input'].read(request_body_size)) if request_body_size > 0 else None
 
+
 def getBodyAsStr():
     ''' 获取string格式的请求体
     '''
@@ -116,7 +128,8 @@ def getBodyAsStr():
     except (ValueError):
         request_body_size = 0
     return environ['wsgi.input'].read(request_body_size)
-    
+
+
 def encodeToken(data):
     ''' 加密token
     格式：header.payload.signature
@@ -124,5 +137,5 @@ def encodeToken(data):
     :return 成功返回加密值，失败返回None
     '''
     token_value = encode(data, getConfByName(RSA_PRIVATE_KEY_FILE_NAME))
-    
+
     return token_value

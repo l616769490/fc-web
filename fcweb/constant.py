@@ -1,5 +1,13 @@
-from fcutils import getConfig, getConfigFromConfCenter
 import json
+from fcutils import getConfig, getConfigFromConfCenter
+
+__all__ = ['CONF_CENTER_NAME', 'SQL_CONF_FILE_NAME',
+           'REDIS_CONF_FILE_NAME', 'WX_GUIDE_FILE_NAME',
+           'WX_USER_FILE_NAME', 'RSA_PUBLIC_KEY_FILE_NAME',
+           'RSA_PRIVATE_KEY_FILE_NAME', 'CODE2SESSION_HOST',
+           'FC_ENVIRON', 'FC_START_RESPONSE', 'getConfByName',
+           'setEnviron', 'getEnviron', 'init']
+
 # 配置文件参数名
 CONF_CENTER_NAME = 'conf_center'
 

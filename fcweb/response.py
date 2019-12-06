@@ -2,6 +2,8 @@ import json
 from .right import encodeToken
 from .constant import getEnviron, FC_START_RESPONSE
 
+__all__ = ['ResponseEntity']
+
 class ResponseEntity:
 
     def __init__(self, statusCode, res = None, token = None):
