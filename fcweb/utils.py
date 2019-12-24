@@ -6,9 +6,9 @@
 import json
 import time
 from urllib.parse import unquote
-from .constant import getEnviron, FC_ENVIRON
+from .constant import getConfByName, FC_ENVIRON
 
-__all__ = ['pathMatch', 'createId']
+__all__ = ['pathMatch', 'createId', 'getBody', 'getBodyAsJson', 'getBodyAsStr']
 
 
 def pathMatch(path, pattern=None):
@@ -75,7 +75,7 @@ def _format(s):
 def createId():
     ''' 生成ID
     '''
-    environ = getEnviron(FC_ENVIRON)
+    environ = getConfByName(FC_ENVIRON)
     temp = str(time.time()).replace('.', '')
     if len(temp) < 17:
         temp = ("0" * (17-len(temp))) + temp
@@ -89,3 +89,51 @@ def createId():
         serviceName = serviceName[:15]
 
     return temp + serviceName
+
+def getBody():
+    ''' 读取body中的数据并自动格式化
+    --
+    '''
+    environ = getConfByName(FC_ENVIRON)
+    request_body_size = 0
+    data = {}
+    try:
+        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+    except (ValueError):
+        request_body_size = 0
+    data = environ['wsgi.input'].read(request_body_size)
+    data = data.decode('utf-8')
+    try:
+        return json.loads(data)
+    except Exception as e:
+        pass
+    
+    try:
+        from .fcutils import xml2dict
+        xml = xml2dict.XML2Dict()
+        return xml.parse(data)
+    except Exception as e:
+        pass
+    
+    return data
+    
+def getBodyAsJson():
+    ''' 获取json格式的请求体
+    '''
+    environ = getConfByName(FC_ENVIRON)
+    try:
+        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+    except (ValueError):
+        request_body_size = 0
+    return json.loads(environ['wsgi.input'].read(request_body_size)) if request_body_size > 0 else {}
+
+
+def getBodyAsStr():
+    ''' 获取string格式的请求体
+    '''
+    environ = getConfByName(FC_ENVIRON)
+    try:
+        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
+    except (ValueError):
+        request_body_size = 0
+    return environ['wsgi.input'].read(request_body_size)

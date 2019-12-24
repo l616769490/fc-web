@@ -1,8 +1,7 @@
 import abc
 import json
-import pymysql
 import importlib
-from fcutils import getConfig, getConfigFromConfCenter
+from fcweb.fcutils import getConfigFromConfCenter
 
 __all__ = ['Sign', 'DBSign', 'RedisSign']
 
@@ -35,14 +34,15 @@ class DBSign(Sign):
     def replace(self):
         '''@param environ: 函数计算环境变量
         '''
-        from .constant import getEnviron, FC_ENVIRON, CONF_CENTER_NAME, SQL_CONF_FILE_NAME
-        environ = getEnviron(FC_ENVIRON)
-        confCenter = getEnviron(CONF_CENTER_NAME)
+        from fcweb.constant import getConfByName, FC_ENVIRON, CONF_CENTER_NAME, SQL_CONF_FILE_NAME
+        environ = getConfByName(FC_ENVIRON)
+        confCenter = getConfByName(CONF_CENTER_NAME)
 
         res = getConfigFromConfCenter(confCenter['url'], SQL_CONF_FILE_NAME, confCenter['pwd'] )
         if res.status_code != 200:
             raise Exception('读取配置中心失败！')
         data = json.loads(res.text)
+        import pymysql
         conn = pymysql.connect(data['url'], data['username'], data['password'], data['database'], 
                                 charset = data['charset'], cursorclass=pymysql.cursors.DictCursor)
         return conn
@@ -59,9 +59,9 @@ class RedisSign(Sign):
     def replace(self):
         '''@param environ: 函数计算环境变量
         '''
-        from .constant import getEnviron, FC_ENVIRON, CONF_CENTER_NAME, SQL_CONF_FILE_NAME
-        environ = getEnviron(FC_ENVIRON)
-        confCenter = getEnviron(CONF_CENTER_NAME)
+        from fcweb.constant import getConfByName, FC_ENVIRON, CONF_CENTER_NAME, SQL_CONF_FILE_NAME
+        environ = getConfByName(FC_ENVIRON)
+        confCenter = getConfByName(CONF_CENTER_NAME)
 
         res = getConfigFromConfCenter(confCenter['url'], SQL_CONF_FILE_NAME, confCenter['pwd'] )
         if res.status_code != 200:

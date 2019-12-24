@@ -1,12 +1,11 @@
 import json
 import pymysql
-import fcutils
-from fcutils import getConfig
+from .fcutils import getData, getConfig
 from .sign import DBSign, RedisSign
 from .constant import getConfByName, CODE2SESSION_HOST, WX_GUIDE_FILE_NAME, WX_USER_FILE_NAME
 
-__all__ = ['dbConn', 'redisConn', 'guideCode2Session',
-           'userCode2Session']
+__all__ = ['dbConn', 'redisConn', 
+           'guideCode2Session', 'userCode2Session']
 
 
 @DBSign
@@ -23,7 +22,6 @@ def redisConn():
     --
     """
     pass
-
 
 def guideCode2Session(code):
     ''' 导游端获取sessionkey和openid(unionid)
@@ -65,5 +63,6 @@ def _getCode2Session(code, confName):
     appid = confData['appid']
     secret = confData['secret']
     code2session_host = CODE2SESSION_HOST % (appid, secret, code)
-    code2Session = fcutils.getData(code2session_host).text
+    code2Session = getData(code2session_host).text
     return json.loads(code2Session)
+

@@ -9,13 +9,12 @@ import json
 import base64
 import logging
 from .connect import dbConn
-from fcutils import getConfig, getDataForStr, decode, timeLater, encode
-from .constant import getConfByName, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME, getEnviron, FC_ENVIRON, FC_START_RESPONSE
+from .fcutils import getConfig, getDataForStr, decode, timeLater, encode, xml2dict
+from .constant import getConfByName, RSA_PRIVATE_KEY_FILE_NAME, RSA_PUBLIC_KEY_FILE_NAME, getConfByName, FC_ENVIRON, FC_START_RESPONSE
 
 __all__ = ['isLogin', 'getTokenFromHeader',
            'getPayloadFromHeader', 'updateToken',
-           'authRight', 'getBodyAsJson',
-           'getBodyAsStr', 'encodeToken']
+           'encodeToken', 'authRight']
 
 _log = logging.getLogger()
 
@@ -35,7 +34,7 @@ def getTokenFromHeader():
     ''' 验证是否存在3RDSession，存在返回解码的值失败返回None
     --
     '''
-    environ = getEnviron(FC_ENVIRON)
+    environ = getConfByName(FC_ENVIRON)
     # 验证头信息
     if 'HTTP_3RD_SESSION' not in environ:
         return None
@@ -48,7 +47,7 @@ def getPayloadFromHeader():
     ''' 获取头部的token里的具体内容，本地解码，不验证是否可靠
     --
     '''
-    environ = getEnviron(FC_ENVIRON)
+    environ = getConfByName(FC_ENVIRON)
     # 验证头信息
     if 'HTTP_3RD_SESSION' not in environ:
         return None
@@ -77,11 +76,21 @@ def updateToken(payload):
         payload['exp'] = exp
         return payload
 
+def encodeToken(data):
+    ''' 加密token
+    格式：header.payload.signature
+    :param data 签名参数
+    :return 成功返回加密值，失败返回None
+    '''
+    token_value = encode(data, getConfByName(RSA_PRIVATE_KEY_FILE_NAME))
+
+    return token_value
+
 
 def authRight(token):
     ''' 权限验证，成功返回True，失败返回False
     '''
-    environ = getEnviron(FC_ENVIRON)
+    environ = getConfByName(FC_ENVIRON)
     requestUri = environ['fc.request_uri']
     conn = dbConn.replace()
     cursor = conn.cursor()
@@ -106,36 +115,3 @@ def authRight(token):
     interfaces = [rurl['interface'] for rurl in roleUrls]
 
     return fcInterfaceURL in interfaces
-
-
-def getBodyAsJson():
-    ''' 获取json格式的请求体
-    '''
-    environ = getEnviron(FC_ENVIRON)
-    try:
-        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-    except (ValueError):
-        request_body_size = 0
-    return json.loads(environ['wsgi.input'].read(request_body_size)) if request_body_size > 0 else None
-
-
-def getBodyAsStr():
-    ''' 获取string格式的请求体
-    '''
-    environ = getEnviron(FC_ENVIRON)
-    try:
-        request_body_size = int(environ.get('CONTENT_LENGTH', 0))
-    except (ValueError):
-        request_body_size = 0
-    return environ['wsgi.input'].read(request_body_size)
-
-
-def encodeToken(data):
-    ''' 加密token
-    格式：header.payload.signature
-    :param data 签名参数
-    :return 成功返回加密值，失败返回None
-    '''
-    token_value = encode(data, getConfByName(RSA_PRIVATE_KEY_FILE_NAME))
-
-    return token_value
