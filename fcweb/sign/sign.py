@@ -38,7 +38,7 @@ class DBSign(Sign):
         environ = getConfByName(FC_ENVIRON)
         confCenter = getConfByName(CONF_CENTER_NAME)
 
-        res = getConfigFromConfCenter(confCenter['url'], SQL_CONF_FILE_NAME, confCenter['pwd'] )
+        res = getConfigFromConfCenter(confCenter['url'], SQL_CONF_FILE_NAME, confCenter.get('pwd', None)  )
         if res.status_code != 200:
             raise Exception('读取配置中心失败！')
         data = json.loads(res.text)
@@ -63,7 +63,7 @@ class RedisSign(Sign):
         environ = getConfByName(FC_ENVIRON)
         confCenter = getConfByName(CONF_CENTER_NAME)
 
-        res = getConfigFromConfCenter(confCenter['url'], SQL_CONF_FILE_NAME, confCenter['pwd'] )
+        res = getConfigFromConfCenter(confCenter['url'], SQL_CONF_FILE_NAME, confCenter.get('pwd', None)  )
         if res.status_code != 200:
             raise Exception('读取配置中心失败！')
         data = json.loads(res.text)
